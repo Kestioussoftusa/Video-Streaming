@@ -18,6 +18,51 @@ Ensure your WebRTC server (WEBRTC_URL) is active and reachable.
 
 
 
+nsuring your WebRTC server (WEBRTC_URL) is active and reachable means that the WebRTC signaling and media server you’re using must be properly set up, running, and accessible over the internet. This is crucial for enabling real-time peer-to-peer communication for video and audio streaming.
+
+What Is a WebRTC Server?
+A WebRTC server facilitates peer-to-peer connections by handling signaling, NAT traversal, and media relay when direct peer connections are not possible. It usually involves:
+
+Signaling Server: Handles the initial exchange of information (like offer/answer) between peers to establish the connection. This is often built using WebSockets.
+STUN/TURN Servers:
+STUN: Helps peers discover their public IP addresses to establish direct connections.
+TURN: Relays media streams when peers cannot connect directly due to restrictive network configurations.
+Steps to Ensure the WebRTC Server Is Active and Reachable
+Install a WebRTC Signaling Server:
+Use an established WebRTC server such as Ant Media Server, Kurento, or a custom WebSocket-based signaling server.
+Start the Server:
+Ensure the server is running on the correct host and port.
+For example, if using Ant Media Server:
+./start.sh
+Expose the Server to the Internet:
+The WebRTC server must be accessible from your Hostinger-hosted app and the clients. Use:
+Public IP Address: If hosting on a VPS or cloud provider.
+Domain Name: Set up a DNS record pointing to your server.
+Ensure the port for WebSocket (e.g., 5080) and media relay (e.g., 3478 for STUN/TURN) are open in your firewall.
+Secure the Server:
+Use HTTPS and WSS (Secure WebSocket) for production.
+Install SSL certificates for your WebRTC server (e.g., Let’s Encrypt).
+Test Connectivity:
+Verify the WebRTC server is accessible by trying the WebSocket URL (e.g., wss://yourdomain.com:5080) in your application.
+Configure Your Application:
+Update the WEBRTC_URL in the .env file of your application to point to the signaling server:
+WEBRTC_URL=wss://yourdomain.com:5080
+Monitor the Server:
+Use tools like server logs or a monitoring solution to ensure it remains functional under load.
+Common Issues
+Firewall Restrictions: Ensure your firewall allows traffic on the required ports (e.g., 5080 for WebSocket, 3478 for STUN/TURN).
+HTTPS Requirements: Browsers require WebRTC connections to run over secure protocols (HTTPS and WSS).
+Network Address Translation (NAT): Use a TURN server if peers are behind restrictive NATs or firewalls.
+By following these steps, your WebRTC server will be ready to handle peer-to-peer video and audio connections effectively. Let me know if you need guidance on setting up or testing a specific WebRTC server!
+
+
+
+
+
+
+
+
+
 
 
 
