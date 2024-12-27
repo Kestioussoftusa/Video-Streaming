@@ -6,6 +6,8 @@ Scalable Architecture: Support up to 1,000 peers per session/room.
 Admin Features: Easy upload of video content using API keys, secret keys, etc.
 Subscription & Payment: Integrated payment gateway for donations and subscriptions (e.g., Stripe).
 Beautiful Landing Page: Clean, modern, and responsive design using a CSS framework like Tailwind CSS or Bootstrap.
+
+
 2. Technology Stack
 Frontend: React with Tailwind CSS for simplicity and a modern interface.
 Backend: Node.js with Express for REST APIs.
@@ -147,6 +149,7 @@ Copy the build/ folder to the backend's static folder.
 Deploy:
 Upload the project files to Hostinger.
 Configure Node.js and ensure .env is properly set.
+
 Start Server:
 Use a process manager like PM2 to run the server.
 8. Final Checklist
