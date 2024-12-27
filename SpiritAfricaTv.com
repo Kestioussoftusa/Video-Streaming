@@ -21,6 +21,10 @@ Ensure your WebRTC server (WEBRTC_URL) is active and reachable.
 nsuring your WebRTC server (WEBRTC_URL) is active and reachable means that the WebRTC signaling and media server you’re using must be properly set up, running, and accessible over the internet. This is crucial for enabling real-time peer-to-peer communication for video and audio streaming.
 
 What Is a WebRTC Server?
+
+https://antmedia.io
+
+
 A WebRTC server facilitates peer-to-peer connections by handling signaling, NAT traversal, and media relay when direct peer connections are not possible. It usually involves:
 
 Signaling Server: Handles the initial exchange of information (like offer/answer) between peers to establish the connection. This is often built using WebSockets.
