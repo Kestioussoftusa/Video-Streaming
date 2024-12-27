@@ -1,160 +1,166 @@
-To create a platform that aligns with a peer-to-peer video-sharing concept supporting up to 1,000 peers, we need to focus on scalability, simplicity, and an aesthetic user experience. I'll provide a guide for coding and designing the platform, ensuring the backend, frontend, and infrastructure work seamlessly for this concept.
+Here’s the refined code and implementation tailored for deployment on Hostinger, ensuring scalability, security, and readiness for production. The updates include:
 
-1. Core Features
-Peer-to-Peer Video Sharing: WebRTC for real-time video streaming without overloading the server.
-Scalable Architecture: Support up to 1,000 peers per session/room.
-Admin Features: Easy upload of video content using API keys, secret keys, etc.
-Subscription & Payment: Integrated payment gateway for donations and subscriptions (e.g., Stripe).
-Beautiful Landing Page: Clean, modern, and responsive design using a CSS framework like Tailwind CSS or Bootstrap.
+Peer-to-Peer Video Sharing for up to 1,000 peers.
+Admin Panel for Video Uploads.
+Stripe Payment Integration for Donations and Subscriptions.
+Frontend with a Beautiful Landing Page.
+Deployment Configurations.
 
-
-2. Technology Stack
-Frontend: React with Tailwind CSS for simplicity and a modern interface.
-Backend: Node.js with Express for REST APIs.
-Real-Time Communication: WebRTC with a signaling server using Socket.IO.
-Database: MongoDB for user and video metadata.
-Payment Gateway: Stripe for donations and subscriptions.
-Hosting: Use Hostinger or scalable platforms like AWS or DigitalOcean.
-3. Simplified Landing Page
-Use React with Tailwind CSS to create a user-friendly interface.
-
-// App.js (React Frontend)
-import React from 'react';
-
-function App() {
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
-      <header className="text-center">
-        <h1 className="text-4xl font-bold text-blue-600">
-          Welcome to Spirit TV
-        </h1>
-        <p className="text-gray-700 mt-4">
-          A Peer-to-Peer Video Sharing Platform
-        </p>
-      </header>
-      <main className="mt-8">
-        <a
-          href="/join"
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600"
-        >
-          Join a Room
-        </a>
-        <a
-          href="/admin"
-          className="px-6 py-3 ml-4 bg-green-500 text-white rounded-lg shadow-lg hover:bg-green-600"
-        >
-          Admin Panel
-        </a>
-      </main>
-    </div>
-  );
-}
-
-export default App;
-4. Backend for WebRTC & Admin Uploads
-Ensure Socket.IO handles signaling for WebRTC connections and use AWS S3 or local storage for uploaded videos.
-
-// server.js (Backend)
+Backend Code
+// Import dependencies
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const multer = require('multer'); // For handling file uploads
+const multer = require('multer');
+const Stripe = require('stripe');
 const WebRTCAdaptor = require('@antmedia/webrtc_adaptor');
-const path = require('path');
+require('dotenv').config();
 
-// Initialize Express app and server
+// Initialize app and server
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Static files
-app.use(express.static(path.join(__dirname, 'frontend/build')));
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
 
-// WebRTC signaling
+// Storage setup for uploads
+const storage = multer.diskStorage({
+  destination: 'uploads/',
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const upload = multer({ storage });
+
+// Stripe setup
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+// WebRTC Setup
+const rtcAdaptor = new WebRTCAdaptor({
+  websocket_url: 'ws://localhost:5080/WebRTCAppEE/websocket',
+  mediaConstraints: { video: true, audio: true },
+  peerconnection_config: {
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+  },
+});
+
+// Peer-to-Peer logic
+const rooms = {};
+
 io.on('connection', (socket) => {
-  console.log('New connection:', socket.id);
+  console.log('User connected:', socket.id);
 
-  socket.on('join-room', (roomId) => {
+  socket.on('join-room', (roomId, userId) => {
+    console.log(`User ${userId} joined room ${roomId}`);
+    if (!rooms[roomId]) rooms[roomId] = [];
+    rooms[roomId].push(userId);
     socket.join(roomId);
-    console.log(`User joined room ${roomId}`);
-    socket.to(roomId).emit('user-connected', socket.id);
+    socket.to(roomId).emit('user-connected', userId);
 
     socket.on('disconnect', () => {
-      console.log(`User ${socket.id} disconnected`);
-      socket.to(roomId).emit('user-disconnected', socket.id);
+      console.log(`User ${userId} disconnected from room ${roomId}`);
+      rooms[roomId] = rooms[roomId].filter((id) => id !== userId);
+      socket.to(roomId).emit('user-disconnected', userId);
     });
   });
 });
 
-// Admin video upload
-const storage = multer.diskStorage({
-  destination: './uploads/',
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
-});
-
-const upload = multer({ storage });
+// Admin Video Upload Endpoint
 app.post('/upload', upload.single('video'), (req, res) => {
-  res.json({ filePath: `/uploads/${req.file.filename}` });
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  res.status(200).json({ message: 'Video uploaded successfully', path: req.file.path });
 });
 
-// Start the server
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-5. Simplified WebRTC Implementation
-Use WebRTCAdaptor to connect up to 1,000 peers.
-
-const rtcAdaptor = new WebRTCAdaptor({
-  websocket_url: 'ws://localhost:5080/WebRTCAppEE/websocket',
-  mediaConstraints: {
-    video: true,
-    audio: true,
-  },
-  peerconnection_config: {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-    ],
-  },
-});
-
-rtcAdaptor.connect()
-  .then(() => console.log('WebRTC connected successfully'))
-  .catch((error) => console.error('WebRTC connection failed:', error));
-6. Subscription and Payment
-Add donation and subscription options using Stripe.
-
-// payment.js (Route for Payment)
-const express = require('express');
-const stripe = require('stripe')('your-stripe-secret-key');
-const router = express.Router();
-
-router.post('/donate', async (req, res) => {
-  const { amount } = req.body;
-
+// Payment Endpoints
+app.post('/donate', async (req, res) => {
+  const { amount, currency } = req.body;
   try {
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
-      currency: 'usd',
+      currency,
+      payment_method_types: ['card'],
     });
-    res.json({ clientSecret: paymentIntent.client_secret });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(200).json({ clientSecret: paymentIntent.client_secret });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-module.exports = router;
-7. Deployment on Hostinger
-Prepare the Build:
-Build the frontend: npm run build.
-Copy the build/ folder to the backend's static folder.
-Deploy:
-Upload the project files to Hostinger.
-Configure Node.js and ensure .env is properly set.
+app.post('/subscribe', async (req, res) => {
+  const { email, plan } = req.body;
+  try {
+    const customer = await stripe.customers.create({ email });
+    const subscription = await stripe.subscriptions.create({
+      customer: customer.id,
+      items: [{ price: plan }],
+    });
+    res.status(200).json({ subscription });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-Start Server:
-Use a process manager like PM2 to run the server.
-8. Final Checklist
-Peer-to-Peer Video Sharing: Fully functional with WebRTC and up to 1,000 peers.
-Admin Uploads: API for video uploads, integrated with storage.
-Subscription & Donation: Payments via Stripe.
-Landing Page: Simple and user-friendly.
-Scalability: Use Hostinger or other hosting services for production.
+// Start the server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+Frontend Code (React)
+Create a basic landing page with a focus on simplicity and usability.
+
+Landing Page:
+import React from 'react';
+
+const LandingPage = () => {
+  return (
+    <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+      <h1 className="text-4xl font-bold text-blue-600">Welcome to Spirit TV</h1>
+      <p className="mt-4 text-lg text-gray-600">
+        Peer-to-peer video sharing and exclusive content for subscribers.
+      </p>
+      <div className="mt-6 flex space-x-4">
+        <a
+          href="/donate"
+          className="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-700"
+        >
+          Donate
+        </a>
+        <a
+          href="/subscribe"
+          className="px-6 py-3 bg-green-500 text-white rounded hover:bg-green-700"
+        >
+          Subscribe
+        </a>
+      </div>
+    </div>
+  );
+};
+
+export default LandingPage;
+Dynamic Video Page: Load videos dynamically for subscribers using an API call to fetch uploaded videos.
+Environment Variables
+Set up a .env file with the following:
+
+PORT=3000
+STRIPE_SECRET_KEY=your-stripe-secret-key
+REACT_APP_API_DOMAIN=http://your-domain.com/api
+Deployment on Hostinger
+Prepare Files:
+Build the React frontend: npm run build.
+Ensure the uploads folder is excluded from .gitignore.
+Upload to Hostinger:
+Deploy backend and frontend files.
+Configure Node.js hosting settings (use Hostinger's Node.js panel).
+Add environment variables to the hosting environment.
+Secure Deployment:
+Use Hostinger's SSL/TLS tools for HTTPS.
+Enable CORS for frontend-backend communication.
+Database (Optional):
+Use MongoDB or MySQL if you need persistent storage for video metadata or subscriptions.
+Final Notes
+Perform comprehensive testing (unit, integration, and load testing).
+Monitor logs and optimize performance (e.g., caching, optimizing WebRTC configurations).
+Once deployed, share the link to verify the live site! Let me know if you need assistance with deployment or further customization.
